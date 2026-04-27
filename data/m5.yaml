@@ -21,13 +21,13 @@
 #train_100: yolo_train_100.txt
 #target_1000: yolo_target_1000.txt  # train images (relative to 'path') 118287 images
 #target_400: yolo_target_400.txt
-train_source: [./datasets/Olympus/images/train,./datasets/random_5_shot/images/train]    # train images (relative to 'path') 118287 images
-train_aug: ./datasets/Olympus_tar_aug_5_shot/images/train #./datasets/HCM_aug_1000/yolo_train.txt
-#train_source: [./datasets/HCM_1000_source_only/yolo_train.txt,./datasets/random_2_shot/yolo_train.txt] 
-train_target: ./datasets/random_5_shot/images/train #./datasets/Fewshot_LCM_1000/yolo_train.txt
-val: ./datasets/Olympus/yolo_val.txt  # val images (relative to 'path') 5000 images
-test: ./datasets/Olympus/yolo_test.txt # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
-#val: ./datasets/m5_1000/olympus/images/val #hcm 1000
+train_source: [/content/drive/MyDrive/M5YoloFormat/Olympus/images/train,/content/drive/MyDrive/M5YoloFormat/random_5_shot/images/train]    # train images (relative to 'path') 118287 images
+train_aug: /content/drive/MyDrive/M5YoloFormat/Olympus_tar_aug_5_shot/images/train #./datasets/HCM_aug_1000/yolo_train.txt
+#train_source: [/content/drive/MyDrive/M5YoloFormat/HCM_1000_source_only/yolo_train.txt,/content/drive/MyDrive/M5YoloFormat/random_2_shot/yolo_train.txt] 
+train_target: /content/drive/MyDrive/M5YoloFormat/random_5_shot/images/train #./datasets/Fewshot_LCM_1000/yolo_train.txt
+val: /content/drive/MyDrive/M5YoloFormat/Olympus/yolo_val.txt  # val images (relative to 'path') 5000 images
+test: /content/drive/MyDrive/M5YoloFormat/Olympus/yolo_test.txt # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
+#val: /content/drive/MyDrive/M5YoloFormat/m5_1000/olympus/images/val #hcm 1000
 #test: ./datasets/m5_1000/olympus/images/test #hcm 1000
 # number of classes
 nc: 4
