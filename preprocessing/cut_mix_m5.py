@@ -2,9 +2,12 @@
 #cut some context also from the patch
 #apply patch ramdomly not just in the above sections
 
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True  # ← add at top of script
 import cv2
 import os
 import shutil
+import sys
 import random
 import numpy as np
 import math
@@ -49,6 +52,8 @@ def preprocess_source_data(dir):
     #get data for further preprocessing
     for magnification in os.listdir(dir): 
         if magnification == '1000x.cache':
+            continue
+        if magnification != '1000x':  # ← add this
             continue
         ann_paths = os.listdir(os.path.join(dir,magnification))
         less_obj = []
@@ -101,17 +106,29 @@ def get_target_few_data(target_lab_dir):
     return few_labs_all_res
 
 
-def copy_more_obj_data(more_obj_data):
+# def copy_more_obj_data(more_obj_data):
+#     for magnification in more_obj_data.keys():
+#         files = more_obj_data[magnification]
+#         for file in files:
+#             label = file.replace("HCM_1000_source_only", "Olympus_tar_aug")
+#             shutil.copyfile(file, label) #copy label
+#             sor_img = get_image(file)
+#             dest_img = sor_img.replace("HCM_1000_source_only", "Olympus_tar_aug")
+#             shutil.copyfile(sor_img, dest_img) #copy image
+
+def copy_more_obj_data(more_obj_data, sor_lab_dir, root_dir):
     for magnification in more_obj_data.keys():
         files = more_obj_data[magnification]
         for file in files:
-            label = file.replace("HCM_1000_source_only", "Olympus_tar_aug")
-            shutil.copyfile(file, label) #copy label
-            sor_img = get_image(file)
-            dest_img = sor_img.replace("HCM_1000_source_only", "Olympus_tar_aug")
-            shutil.copyfile(sor_img, dest_img) #copy image
-
-
+            file = Path(file)
+            rel = file.relative_to(sor_lab_dir)
+            out_label = root_dir / 'Olympus_tar_aug' / 'labels' / 'train' / rel
+            out_label.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(file, out_label)
+            src_img = Path(get_image(str(file)))
+            out_img = root_dir / 'Olympus_tar_aug' / 'images' / 'train' / rel.with_suffix('.png')
+            out_img.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src_img, out_img)
 
 """
 the list in this hashmap will contain the
@@ -259,141 +276,296 @@ def blur_img(mag,img):
     
 
 
-def get_augemented_data(root_dir, sor_lab_dir, tar_lab_dir,dir, blur=False):
-    make_dirs(root_dir)
-    #dict to record the files and corresponging object bounding box that has been incremented
-    objects_incremented = {'1000x':{},'400x':{},'100x':{}}
-    #get magnification wise preprocessed data
-    object_count_sor, objs_less_than_thres, objs_more_than_thres, object_present,_ = preprocess_source_data(sor_lab_dir)
-    few_labs_all_res = get_target_few_data(tar_lab_dir)
-    copy_more_obj_data(objs_more_than_thres)
-    increment_stats = get_count_tobe_incremented(object_count_sor,objs_less_than_thres) # stats contain [original-count, number of image files a particular object has to be incremented, number of times one object has to be increemetd in an image]
+# def get_augemented_data(root_dir, sor_lab_dir, tar_lab_dir,dir, blur=False):
+#     make_dirs(root_dir)
+#     #dict to record the files and corresponging object bounding box that has been incremented
+#     objects_incremented = {'1000x':{},'400x':{},'100x':{}}
+#     #get magnification wise preprocessed data
+#     object_count_sor, objs_less_than_thres, objs_more_than_thres, object_present,_ = preprocess_source_data(sor_lab_dir)
+#     few_labs_all_res = get_target_few_data(tar_lab_dir)
+#     copy_more_obj_data(objs_more_than_thres, Path(sor_lab_dir), root_dir)
+#     increment_stats = get_count_tobe_incremented(object_count_sor,objs_less_than_thres) # stats contain [original-count, number of image files a particular object has to be incremented, number of times one object has to be increemetd in an image]
     
-    for magnificaton in objs_less_than_thres.keys():
-        less_obj_label_paths = objs_less_than_thres[magnificaton] #labels of the images that have 4 objects only and now we are going to augment some more into it
-        labs_with_clas_present = object_present[magnificaton] #[value for values in object_present[magnificaton].values() for value in value
-        for less_objs_file in less_obj_label_paths:
-            path_img_with_less_obj = get_image(less_objs_file)
-            less_objs_img =  Image.open(path_img_with_less_obj)
-            if blur:
-                less_objs_img = blur_img(magnificaton,less_objs_img)
-            less_objs_anns = get_annotations(less_objs_file, less_objs_img.size) #[label,x_min, y_min, x_max, y_max]
-            empty_rejion_mask = find_empty_positions(dir, less_objs_anns , less_objs_img.size)
+#     for magnificaton in objs_less_than_thres.keys():
+#         less_obj_label_paths = objs_less_than_thres[magnificaton] #labels of the images that have 4 objects only and now we are going to augment some more into it
+#         labs_with_clas_present = object_present[magnificaton] #[value for values in object_present[magnificaton].values() for value in value
+#         for i, less_objs_file in enumerate(less_obj_label_paths):
+#             print(f"{magnificaton}: {i+1}/{len(less_obj_label_paths)}", end='\r')
+#             path_img_with_less_obj = get_image(less_objs_file)
+#             try:                                          # ← add
+#                 less_objs_img = Image.open(path_img_with_less_obj)
+#             except Exception as e:                        # ← add
+#                 print(f"\nSkipping bad image: {path_img_with_less_obj}: {e}")
+#                 continue
+#             less_objs_file_path = Path(less_objs_file)
+#             rel = less_objs_file_path.relative_to(Path(sor_lab_dir))
+#             new_lab_file = root_dir / 'Olympus_tar_aug' / 'labels' / 'train' / rel
+#             if new_lab_file.exists():
+#                 continue                                  # ← add
+#             path_img_with_less_obj = get_image(less_objs_file)
+#             less_objs_img =  Image.open(path_img_with_less_obj)
+#             if blur:
+#                 less_objs_img = blur_img(magnificaton,less_objs_img)
+#             less_objs_anns = get_annotations(less_objs_file, less_objs_img.size) #[label,x_min, y_min, x_max, y_max]
+#             empty_rejion_mask = find_empty_positions(dir, less_objs_anns , less_objs_img.size)
             
-            #get the image with label and its corresponding annottaion
+#             #get the image with label and its corresponding annottaion
+#             for clas in increment_stats[magnificaton].keys():
+#                 list = increment_stats[magnificaton][clas]# list containg the total number of each class, how much more instances needed, how much each one has to be multiplied and how many will each augment in eah less obj image
+#                 #print(list)
+#                 if list: #if list not empty
+#                     incr_times = increment_stats[magnificaton][clas][-1] #num times this specific class has to be augmented
+#                     incr_files = increment_stats[magnificaton][clas][1]
+#                     labs_with_clas = labs_with_clas_present[clas]
+#                     rand = random.randrange(len(labs_with_clas))
+#                     path_lab_with_obj = labs_with_clas[rand]
+#                     path_img_with_objs = get_image(path_lab_with_obj)
+#                     img_with_objs = Image.open(path_img_with_objs) 
+#                     if blur:
+#                        img_with_objs = blur_img(magnificaton,img_with_objs)
+#                     objs_ann = get_annotations(path_lab_with_obj, img_with_objs.size)#[label,x_min,y_min,x_max,y_max]
+                    
+#                     for i in range(len(objs_ann)):
+#                         if int(objs_ann[i][0]) == clas:
+#                             ann = objs_ann[i]
+#                             if path_lab_with_obj in objects_incremented[magnificaton].keys():
+#                                 dict = objects_incremented[magnificaton][path_lab_with_obj]
+#                                 if clas not in dict.keys():
+#                                     ymin,ymax,xmin,xmax = int(ann[2]), int(ann[4]) , int(ann[1]), int(ann[3])
+#                                     object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
+#                                     #object_patch = random_color_variation(object_patch)
+#                                     object_patch = random_color_and_blur_variation(object_patch)
+#                                     for _ in range(incr_times):
+#                                         empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, object_patch.size) #x_min,y_min,x_max,y_max
+#                                         if F:
+#                                             less_objs_img,less_objs_anns = paste_object(cords, object_patch, ann,less_objs_img,less_objs_anns)
+        
+#                                     objects_incremented[magnificaton][path_lab_with_obj][clas] = {i:1}
+#                                     break
+#                                 elif i not in dict[clas].keys():
+#                                     ymin,ymax,xmin,xmax = int(ann[2]), int(ann[4]) , int(ann[1]), int(ann[3])
+#                                     object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
+#                                     #object_patch = random_color_variation(object_patch)
+#                                     object_patch = random_color_and_blur_variation(object_patch)
+#                                     for _ in range(incr_times):
+#                                         empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, object_patch.size) #x_min,y_min,x_max,y_max
+#                                         if F:
+#                                             less_objs_img,less_objs_anns = paste_object(cords, object_patch, ann,less_objs_img,less_objs_anns)
+        
+#                                     objects_incremented[magnificaton][path_lab_with_obj][clas][i] = 1
+#                                     break
+#                                 elif i in dict[clas].keys():
+#                                     if objects_incremented[magnificaton][path_lab_with_obj][clas][i] < incr_files:
+#                                         ymin,ymax,xmin,xmax = int(ann[2]), int(ann[4]) , int(ann[1]), int(ann[3])
+#                                         object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
+#                                         #object_patch = random_color_variation(object_patch)
+#                                         object_patch = random_color_and_blur_variation(object_patch)
+#                                         for _ in range(incr_times):
+#                                             empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, object_patch.size) #x_min,y_min,x_max,y_max
+#                                             if F:
+#                                                less_objs_img,less_objs_anns = paste_object(cords, object_patch, ann,less_objs_img,less_objs_anns)
+        
+#                                         objects_incremented[magnificaton][path_lab_with_obj][clas][i]+=1
+#                                         break
+                             
+#                             else:
+#                                     ymin,ymax,xmin,xmax = int(ann[2]), int(ann[4]) , int(ann[1]), int(ann[3])
+#                                     object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
+#                                     #object_patch = random_color_variation(object_patch)
+#                                     object_patch = random_color_and_blur_variation(object_patch)
+#                                     for _ in range(incr_times):
+#                                         empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, object_patch.size) #x_min,y_min,x_max,y_max
+#                                         if F:
+#                                             less_objs_img,less_objs_anns = paste_object(cords, object_patch, ann,less_objs_img,less_objs_anns)
+        
+#                                     objects_incremented[magnificaton][path_lab_with_obj] = {}
+#                                     objects_incremented[magnificaton][path_lab_with_obj][clas]={i:1}
+                                    
+#                                     break
+                        
+#             #save the new image and its annotation
+#             #delete the image with objs from the list img_with_clas_present
+#             #save the new image and its annotation
+#             new_lab_file = less_objs_file.replace("HCM_1000_source_only", "Olympus_tar_aug")
+#             new_img_file = path_img_with_less_obj.replace("HCM_1000_source_only", "Olympus_tar_aug")
+            
+#             #add patches from real few target sample at the specicifc resolution
+#             real_tar = few_labs_all_res[magnificaton]
+#             rand = random.randrange(len(real_tar))
+#             path_lab_real_tar = real_tar[rand]
+#             path_img_tar = get_image(path_lab_real_tar)
+#             tar_img = Image.open(path_img_tar)
+#             tar_ann = get_annotations(path_lab_real_tar, tar_img.size)#[label,x_min,y_min,x_max,y_max]
+#             if len(tar_ann)>0:
+#                 rand_ann = random.randrange(len(tar_ann))
+#                 t_ann = tar_ann[rand_ann]
+#                 ymin,ymax = int(t_ann[2]), int(t_ann[4])
+#                 xmin,xmax = int(t_ann[1]), int(t_ann[3])
+#                 tar_patch = tar_img.crop((xmin, ymin, xmax, ymax))
+#                 if tar_patch.size[0] > 0 and tar_patch.size[1] > 0:
+#                     #tar_patch = random_color_variation(tar_patch, tar=False) # set tar to true if you wan to double the size
+#                     tar_patch = random_color_and_blur_variation(tar_patch, tar=True)
+#                     for _ in range(1):
+#                         empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, tar_patch.size) #x_min,y_min,x_max,y_max
+#                         if F:
+#                             less_objs_img,less_objs_anns = paste_object(cords, tar_patch, t_ann,less_objs_img,less_objs_anns)
+            
+                                                           
+#             #convert annotations to yolo
+#             w,h = less_objs_img.size
+#             convert_to_yolo_file((w,h), less_objs_anns, new_lab_file)
+#             new_img_file,less_objs_img.save(new_img_file)
+#             #cv2.imwrite(new_img_file,less_objs_img) 
+
+def get_augemented_data(root_dir, sor_lab_dir, tar_lab_dir, dir, blur=False):
+    make_dirs(root_dir)
+    objects_incremented = {'1000x': {}, '400x': {}, '100x': {}}
+    object_count_sor, objs_less_than_thres, objs_more_than_thres, object_present, _ = preprocess_source_data(sor_lab_dir)
+    few_labs_all_res = get_target_few_data(tar_lab_dir)
+    copy_more_obj_data(objs_more_than_thres, Path(sor_lab_dir), root_dir)
+    increment_stats = get_count_tobe_incremented(object_count_sor, objs_less_than_thres)
+
+    for magnificaton in objs_less_than_thres.keys():
+        less_obj_label_paths = objs_less_than_thres[magnificaton]
+        labs_with_clas_present = object_present[magnificaton]
+
+        for i, less_objs_file in enumerate(less_obj_label_paths):
+
+            # ── resolve output paths early for skip check ──
+            less_objs_file_path = Path(less_objs_file)
+            rel = less_objs_file_path.relative_to(Path(sor_lab_dir))
+            new_lab_file = root_dir / 'Olympus_tar_aug' / 'labels' / 'train' / rel
+            new_img_file = root_dir / 'Olympus_tar_aug' / 'images' / 'train' / rel.with_suffix('.png')
+
+            # ── skip if already processed ──
+            if new_lab_file.exists():
+                print(f"{magnificaton}: {i+1}/{len(less_obj_label_paths)} [skipped]", flush=True)
+                continue
+
+            print(f"{magnificaton}: {i+1}/{len(less_obj_label_paths)}", flush=True)
+
+            # ── safely open image ──
+            path_img_with_less_obj = get_image(less_objs_file)
+            try:
+                less_objs_img = Image.open(path_img_with_less_obj)
+            except Exception as e:
+                print(f"\nSkipping bad image: {path_img_with_less_obj}: {e}")
+                continue
+
+            if blur:
+                less_objs_img = blur_img(magnificaton, less_objs_img)
+            less_objs_anns = get_annotations(less_objs_file, less_objs_img.size)
+            empty_rejion_mask = find_empty_positions(dir, less_objs_anns, less_objs_img.size)
+
             for clas in increment_stats[magnificaton].keys():
-                list = increment_stats[magnificaton][clas]# list containg the total number of each class, how much more instances needed, how much each one has to be multiplied and how many will each augment in eah less obj image
-                #print(list)
-                if list: #if list not empty
-                    incr_times = increment_stats[magnificaton][clas][-1] #num times this specific class has to be augmented
+                list_ = increment_stats[magnificaton][clas]
+                if list_:
+                    incr_times = increment_stats[magnificaton][clas][-1]
                     incr_files = increment_stats[magnificaton][clas][1]
                     labs_with_clas = labs_with_clas_present[clas]
                     rand = random.randrange(len(labs_with_clas))
                     path_lab_with_obj = labs_with_clas[rand]
                     path_img_with_objs = get_image(path_lab_with_obj)
-                    img_with_objs = Image.open(path_img_with_objs) 
+                    try:
+                        img_with_objs = Image.open(path_img_with_objs)
+                    except Exception as e:
+                        print(f"\nSkipping bad source image: {path_img_with_objs}: {e}")
+                        continue
                     if blur:
-                       img_with_objs = blur_img(magnificaton,img_with_objs)
-                    objs_ann = get_annotations(path_lab_with_obj, img_with_objs.size)#[label,x_min,y_min,x_max,y_max]
-                    
+                        img_with_objs = blur_img(magnificaton, img_with_objs)
+                    objs_ann = get_annotations(path_lab_with_obj, img_with_objs.size)
+
                     for i in range(len(objs_ann)):
                         if int(objs_ann[i][0]) == clas:
                             ann = objs_ann[i]
                             if path_lab_with_obj in objects_incremented[magnificaton].keys():
-                                dict = objects_incremented[magnificaton][path_lab_with_obj]
-                                if clas not in dict.keys():
-                                    ymin,ymax,xmin,xmax = int(ann[2]), int(ann[4]) , int(ann[1]), int(ann[3])
+                                dict_ = objects_incremented[magnificaton][path_lab_with_obj]
+                                if clas not in dict_.keys():
+                                    ymin, ymax, xmin, xmax = int(ann[2]), int(ann[4]), int(ann[1]), int(ann[3])
                                     object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
-                                    #object_patch = random_color_variation(object_patch)
                                     object_patch = random_color_and_blur_variation(object_patch)
                                     for _ in range(incr_times):
-                                        empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, object_patch.size) #x_min,y_min,x_max,y_max
+                                        empty_rejion_mask, cords, F = find_pasting_rejion(dir, empty_rejion_mask, object_patch.size)
                                         if F:
-                                            less_objs_img,less_objs_anns = paste_object(cords, object_patch, ann,less_objs_img,less_objs_anns)
-        
-                                    objects_incremented[magnificaton][path_lab_with_obj][clas] = {i:1}
+                                            less_objs_img, less_objs_anns = paste_object(cords, object_patch, ann, less_objs_img, less_objs_anns)
+                                    objects_incremented[magnificaton][path_lab_with_obj][clas] = {i: 1}
                                     break
-                                elif i not in dict[clas].keys():
-                                    ymin,ymax,xmin,xmax = int(ann[2]), int(ann[4]) , int(ann[1]), int(ann[3])
+                                elif i not in dict_[clas].keys():
+                                    ymin, ymax, xmin, xmax = int(ann[2]), int(ann[4]), int(ann[1]), int(ann[3])
                                     object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
-                                    #object_patch = random_color_variation(object_patch)
                                     object_patch = random_color_and_blur_variation(object_patch)
                                     for _ in range(incr_times):
-                                        empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, object_patch.size) #x_min,y_min,x_max,y_max
+                                        empty_rejion_mask, cords, F = find_pasting_rejion(dir, empty_rejion_mask, object_patch.size)
                                         if F:
-                                            less_objs_img,less_objs_anns = paste_object(cords, object_patch, ann,less_objs_img,less_objs_anns)
-        
+                                            less_objs_img, less_objs_anns = paste_object(cords, object_patch, ann, less_objs_img, less_objs_anns)
                                     objects_incremented[magnificaton][path_lab_with_obj][clas][i] = 1
                                     break
-                                elif i in dict[clas].keys():
+                                elif i in dict_[clas].keys():
                                     if objects_incremented[magnificaton][path_lab_with_obj][clas][i] < incr_files:
-                                        ymin,ymax,xmin,xmax = int(ann[2]), int(ann[4]) , int(ann[1]), int(ann[3])
+                                        ymin, ymax, xmin, xmax = int(ann[2]), int(ann[4]), int(ann[1]), int(ann[3])
                                         object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
-                                        #object_patch = random_color_variation(object_patch)
                                         object_patch = random_color_and_blur_variation(object_patch)
                                         for _ in range(incr_times):
-                                            empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, object_patch.size) #x_min,y_min,x_max,y_max
+                                            empty_rejion_mask, cords, F = find_pasting_rejion(dir, empty_rejion_mask, object_patch.size)
                                             if F:
-                                               less_objs_img,less_objs_anns = paste_object(cords, object_patch, ann,less_objs_img,less_objs_anns)
-        
-                                        objects_incremented[magnificaton][path_lab_with_obj][clas][i]+=1
+                                                less_objs_img, less_objs_anns = paste_object(cords, object_patch, ann, less_objs_img, less_objs_anns)
+                                        objects_incremented[magnificaton][path_lab_with_obj][clas][i] += 1
                                         break
-                             
                             else:
-                                    ymin,ymax,xmin,xmax = int(ann[2]), int(ann[4]) , int(ann[1]), int(ann[3])
-                                    object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
-                                    #object_patch = random_color_variation(object_patch)
-                                    object_patch = random_color_and_blur_variation(object_patch)
-                                    for _ in range(incr_times):
-                                        empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, object_patch.size) #x_min,y_min,x_max,y_max
-                                        if F:
-                                            less_objs_img,less_objs_anns = paste_object(cords, object_patch, ann,less_objs_img,less_objs_anns)
-        
-                                    objects_incremented[magnificaton][path_lab_with_obj] = {}
-                                    objects_incremented[magnificaton][path_lab_with_obj][clas]={i:1}
-                                    
-                                    break
-                        
-            #save the new image and its annotation
-            #delete the image with objs from the list img_with_clas_present
-            #save the new image and its annotation
-            new_lab_file = less_objs_file.replace("HCM_1000_source_only", "Olympus_tar_aug")
-            new_img_file = path_img_with_less_obj.replace("HCM_1000_source_only", "Olympus_tar_aug")
-            
-            #add patches from real few target sample at the specicifc resolution
+                                ymin, ymax, xmin, xmax = int(ann[2]), int(ann[4]), int(ann[1]), int(ann[3])
+                                object_patch = img_with_objs.crop((xmin, ymin, xmax, ymax))
+                                object_patch = random_color_and_blur_variation(object_patch)
+                                for _ in range(incr_times):
+                                    empty_rejion_mask, cords, F = find_pasting_rejion(dir, empty_rejion_mask, object_patch.size)
+                                    if F:
+                                        less_objs_img, less_objs_anns = paste_object(cords, object_patch, ann, less_objs_img, less_objs_anns)
+                                objects_incremented[magnificaton][path_lab_with_obj] = {}
+                                objects_incremented[magnificaton][path_lab_with_obj][clas] = {i: 1}
+                                break
+
+            # ── add patch from real few-shot target sample ──
             real_tar = few_labs_all_res[magnificaton]
-            rand = random.randrange(len(real_tar))
-            path_lab_real_tar = real_tar[rand]
-            path_img_tar = get_image(path_lab_real_tar)
-            tar_img = Image.open(path_img_tar)
-            tar_ann = get_annotations(path_lab_real_tar, tar_img.size)#[label,x_min,y_min,x_max,y_max]
-            if len(tar_ann)>0:
-                rand_ann = random.randrange(len(tar_ann))
-                t_ann = tar_ann[rand_ann]
-                ymin,ymax = int(t_ann[2]), int(t_ann[4])
-                xmin,xmax = int(t_ann[1]), int(t_ann[3])
-                tar_patch = tar_img.crop((xmin, ymin, xmax, ymax))
-                if tar_patch.size[0] > 0 and tar_patch.size[1] > 0:
-                    #tar_patch = random_color_variation(tar_patch, tar=False) # set tar to true if you wan to double the size
-                    tar_patch = random_color_and_blur_variation(tar_patch, tar=True)
-                    for _ in range(1):
-                        empty_rejion_mask, cords, F = find_pasting_rejion(dir,empty_rejion_mask, tar_patch.size) #x_min,y_min,x_max,y_max
-                        if F:
-                            less_objs_img,less_objs_anns = paste_object(cords, tar_patch, t_ann,less_objs_img,less_objs_anns)
-            
-                                                           
-            #convert annotations to yolo
-            w,h = less_objs_img.size
-            convert_to_yolo_file((w,h), less_objs_anns, new_lab_file)
-            new_img_file,less_objs_img.save(new_img_file)
-            #cv2.imwrite(new_img_file,less_objs_img) 
+            if len(real_tar) > 0:
+                rand = random.randrange(len(real_tar))
+                path_lab_real_tar = real_tar[rand]
+                path_img_tar = get_image(path_lab_real_tar)
+                try:
+                    tar_img = Image.open(path_img_tar)
+                    tar_ann = get_annotations(path_lab_real_tar, tar_img.size)
+                    if len(tar_ann) > 0:
+                        rand_ann = random.randrange(len(tar_ann))
+                        t_ann = tar_ann[rand_ann]
+                        ymin, ymax = int(t_ann[2]), int(t_ann[4])
+                        xmin, xmax = int(t_ann[1]), int(t_ann[3])
+                        tar_patch = tar_img.crop((xmin, ymin, xmax, ymax))
+                        if tar_patch.size[0] > 0 and tar_patch.size[1] > 0:
+                            tar_patch = random_color_and_blur_variation(tar_patch, tar=True)
+                            for _ in range(1):
+                                empty_rejion_mask, cords, F = find_pasting_rejion(dir, empty_rejion_mask, tar_patch.size)
+                                if F:
+                                    less_objs_img, less_objs_anns = paste_object(cords, tar_patch, t_ann, less_objs_img, less_objs_anns)
+                except Exception as e:
+                    print(f"\nSkipping bad target image: {path_img_tar}: {e}")
+
+            # ── save output using resolved paths (no hardcoded string replace) ──
+            new_lab_file.parent.mkdir(parents=True, exist_ok=True)
+            new_img_file.parent.mkdir(parents=True, exist_ok=True)
+            w, h = less_objs_img.size
+            convert_to_yolo_file((w, h), less_objs_anns, str(new_lab_file))
+            less_objs_img.save(str(new_img_file))
 
 ###########################################################################################      
 
 if __name__ == '__main__':
     dir = 'data_visualization'
+
+    # root_dir = Path('datasets')
+    # sor_dir = str(Path('datasets/malaria_dataset/Olympus/labels/train'))
+    # tar_dir = str(Path('datasets/malaria_dataset/China/labels/train'))
+
     root_dir = Path('datasets')
-    sor_dir = Path('datasets/HCM_1000_source_only/labels/train')
-    tar_dir = Path('datasets/random_2_shot/labels/train')
+    sor_dir = Path('datasets/malaria_dataset/Olympus/labels/train')  # direct, no copy
+    tar_dir = Path('datasets/random_5_shot/labels/train')  
+
     blur = False
     get_augemented_data(root_dir,sor_dir,tar_dir, dir,blur)  
