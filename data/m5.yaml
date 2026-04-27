@@ -22,7 +22,7 @@
 #target_1000: yolo_target_1000.txt  # train images (relative to 'path') 118287 images
 #target_400: yolo_target_400.txt
 train_source: [/content/drive/MyDrive/M5YoloFormat/Olympus/images/train,/content/drive/MyDrive/M5YoloFormat/random_5_shot/images/train]    # train images (relative to 'path') 118287 images
-train_aug: /content/drive/MyDrive/M5YoloFormat/Olympus_tar_aug_5_shot/images/train #./datasets/HCM_aug_1000/yolo_train.txt
+train_aug: /content/drive/MyDrive/M5YoloFormat/Olympus_tar_aug/images/train #./datasets/HCM_aug_1000/yolo_train.txt
 #train_source: [/content/drive/MyDrive/M5YoloFormat/HCM_1000_source_only/yolo_train.txt,/content/drive/MyDrive/M5YoloFormat/random_2_shot/yolo_train.txt] 
 train_target: /content/drive/MyDrive/M5YoloFormat/random_5_shot/images/train #./datasets/Fewshot_LCM_1000/yolo_train.txt
 val: /content/drive/MyDrive/M5YoloFormat/Olympus/yolo_val.txt  # val images (relative to 'path') 5000 images
