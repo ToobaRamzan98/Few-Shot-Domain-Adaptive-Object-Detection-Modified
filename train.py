@@ -90,7 +90,8 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
         if hyp.get('anchors'):
             ckpt['model'].yaml['anchors'] = round(hyp['anchors'])  # force autoanchor
         targets=None
-        model = Model(targets, opt.cfg or ckpt['model'].yaml, ch=3, nc=nc).to(device)  # create
+        # model = Model(targets, opt.cfg or ckpt['model'].yaml, ch=3, nc=nc).to(device)  # create
+        model = Model(targets, opt.cfg or ckpt['model'].yaml, ch=3, nc=int(nc)).to(device)
         exclude = ['anchor'] if opt.cfg or hyp.get('anchors') else []  # exclude keys
         state_dict = ckpt['model'].float().state_dict()  # to FP32
         state_dict = intersect_dicts(state_dict, model.state_dict(), exclude=exclude)  # intersect
