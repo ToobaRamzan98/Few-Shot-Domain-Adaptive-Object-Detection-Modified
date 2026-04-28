@@ -77,8 +77,7 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
     #default
     #train_path = data_dict['train']  #sumi chnage this
     test_path = data_dict['val']
-    # nc, names = (1, ['item']) if opt.single_cls else (int(data_dict['nc']), data_dict['names'])  # number classes, names
-    nc, names = (1, ['item']) if opt.single_cls else (int(data_dict['nc']), data_dict['names'])
+    nc, names = (1, ['item']) if opt.single_cls else (int(data_dict['nc']), data_dict['names'])  # number classes, names
     assert len(names) == nc, '%g names found for nc=%g dataset in %s' % (len(names), nc, opt.data)  # check
 
     # Model
