@@ -23,7 +23,7 @@
 #target_400: yolo_target_400.txt
 train_source: [/content/drive/MyDrive/M5YoloFormat/Olympus/images/train/1000x,/content/drive/MyDrive/M5YoloFormat/random_5_shot/images/train/1000x]    # train images (relative to 'path') 118287 images
 train_aug: /content/drive/MyDrive/M5YoloFormat/Olympus_tar_aug/images/train/1000x #./datasets/HCM_aug_1000/yolo_train.txt
-train_source: [ /content/drive/MyDrive/M5YoloFormat/Olympus/yolo_train.txt,/content/drive/MyDrive/M5YoloFormat/random_2_shot/yolo_train/1000x.txt] 
+#train_source: [ /content/drive/MyDrive/M5YoloFormat/Olympus/yolo_train.txt,/content/drive/MyDrive/M5YoloFormat/random_2_shot/yolo_train/1000x.txt] 
 train_target: /content/drive/MyDrive/M5YoloFormat/random_5_shot/images/train/1000x #./datasets/Fewshot_LCM_1000/yolo_train.txt
 val: /content/drive/MyDrive/M5YoloFormat/Olympus/yolo_val.txt  # val images (relative to 'path') 5000 images
 test: /content/drive/MyDrive/M5YoloFormat/Olympus/yolo_test.txt # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
