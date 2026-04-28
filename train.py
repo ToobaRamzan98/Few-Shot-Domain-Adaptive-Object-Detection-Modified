@@ -185,8 +185,8 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
     imgsz, imgsz_test = [check_img_size(x, gs) for x in opt.img_size]  # verify imgsz are gs-multiples
 
     # DP mode
-    if cuda and rank == -1 and torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
+    # if cuda and rank == -1 and torch.cuda.device_count() > 1:
+    #     model = torch.nn.DataParallel(model)
 
     # SyncBatchNorm
     if opt.sync_bn and cuda and rank != -1:
@@ -197,8 +197,8 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
     ema = ModelEMA(model) if rank in [-1, 0] else None
 
     # DDP mode
-    if cuda and rank != -1:
-        model = DDP(model, device_ids=[opt.local_rank], output_device=opt.local_rank)
+    # if cuda and rank != -1:
+    #     model = DDP(model, device_ids=[opt.local_rank], output_device=opt.local_rank)
 
     # Trainloader !!!!!!!!!!!! 
     bs_source = int(batch_size*0.5)   # source dataloader built by bs but choose topk for training
