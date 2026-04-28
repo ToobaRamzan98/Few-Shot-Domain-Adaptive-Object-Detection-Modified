@@ -141,10 +141,18 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
     # Logging
     if wandb and wandb.run is None:
         opt.hyp = hyp  # add hyperparameters
-        wandb_run = wandb.init(config=opt, resume="allow",
-                               project='YOLOv5' if opt.project == 'runs/train' else Path(opt.project).stem,
-                               name=save_dir.stem,
-                               id=ckpt.get('wandb_id') if 'ckpt' in locals() else None)
+        wandb.login(key="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")
+        wandb_run = wandb.init(
+            config=opt,
+            resume="allow",
+            project="MICProject2",   
+            name=save_dir.stem,
+            id=ckpt.get('wandb_id') if 'ckpt' in locals() else None
+        )
+        # wandb_run = wandb.init(config=opt, resume="allow",
+        #                        project='YOLOv5' if opt.project == 'runs/train' else Path(opt.project).stem,
+        #                        name=save_dir.stem,
+        #                        id=ckpt.get('wandb_id') if 'ckpt' in locals() else None)
     loggers = {'wandb': wandb}  # loggers dict
 
     # Resume
