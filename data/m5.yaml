@@ -28,9 +28,9 @@ train_aug: /kaggle/input/datasets/toobaramzan81/m5-augmented/Olympus_tar_aug/ima
 #train_source: [ /content/drive/MyDrive/M5YoloFormat/Olympus/yolo_train.txt,/content/drive/MyDrive/M5YoloFormat/random_2_shot/yolo_train/1000x.txt] 
 train_target: /kaggle/input/datasets/toobaramzan81/m5-augmented/random_5_shot/images/train/1000x #./datasets/Fewshot_LCM_1000/yolo_train.txt
 val: /kaggle/input/datasets/toobaramzan81/m5-augmented/Olympus/yolo_val.txt  # val images (relative to 'path') 5000 images
-test: /kaggle/input/datasets/toobaramzan81/m5-augmented/Olympus/yolo_test.txt # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
+test: /kaggle/input/datasets/toobaramzan81/malaria-m5-testset/malaria_dataset-test/China/yolo_test.txt # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
 #val: /kaggle/input/datasets/toobaramzan81/m5-augmented/m5_1000/olympus/images/val #hcm 1000
-#test: ./datasets/m5_1000/olympus/images/test #hcm 1000
+test: /kaggle/input/datasets/toobaramzan81/malaria-m5-testset/malaria_dataset-test/China/images/test #hcm 1000
 #kaggle  Drive Paths End
 
 #Google Drive Paths Start
